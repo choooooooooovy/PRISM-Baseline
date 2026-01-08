@@ -34,8 +34,8 @@ baseline/
 ### Backend (BE/)
 - **Framework**: FastAPI
 - **Language**: Python 3.13
-- **LLM**: OpenAI GPT-4o
-- **Logging**: JSON-based file logging
+- **LLM**: OpenAI GPT-5.2
+- **Logging**: JSON-based file logging (session-based)
 - **Server**: Uvicorn
 
 ## Key Features
@@ -43,14 +43,15 @@ baseline/
 ### 1. CASVE Decision-Making Worksheet (5 Steps)
 - **Step 0**: Self Profile (values, interests, strengths, constraints, concerns)
 - **Step 1**: Communication (problem definition, internal/external cues, key questions)
-- **Step 2**: Analysis (evaluation criteria, constraints, information template)
-- **Step 3**: Synthesis (option generation & profiles, LLM-assisted)
+- **Step 2**: Analysis (evaluation criteria, constraints, dynamic information template)
+- **Step 3**: Synthesis (dynamic option profiles based on Step 2 template, LLM-assisted generation)
 - **Step 4**: Valuing (priority ranking, final choice, tradeoff statement)
 
 ### 2. AI-Powered Option Generation
 - Automatically generates personalized career/decision alternatives based on Steps 0-2 input
-- Uses OpenAI GPT-4o model
-- Structured prompt engineering
+- Uses OpenAI GPT-5.2 model
+- Dynamic profile fields based on Step 2 information template
+- Structured prompt engineering with user-defined fields
 
 ### 3. Real-time Preview & Validation
 - Live preview of inputs in the right panel
@@ -63,8 +64,10 @@ baseline/
 - Print/save functionality
 
 ### 5. Logging System
-- User activity logs (per session, daily)
+- Session-based log organization (separate folder per session)
+- User activity logs (per session)
 - LLM generation history (prompts, responses, token usage)
+- Report data snapshots
 - JSON file-based storage
 
 ## Getting Started
@@ -166,7 +169,7 @@ Generate AI alternatives based on Steps 0-2 data
 ### Backend (BE/.env)
 ```env
 OPENAI_API_KEY=sk-your-api-key-here
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=gpt-5.2
 FRONTEND_URL=http://localhost:3000
 ```
 
@@ -187,11 +190,21 @@ FRONTEND_URL=http://localhost:3000
 
 ## Log Files
 
-Daily log files created in BE/logs/ directory:
+Session-based log structure in BE/logs/ directory:
+
+```
+logs/
+├── app.log
+└── {session_id}/
+    ├── user_activity.json
+    ├── llm_generations.json
+    └── report_data.json
+```
 
 - `app.log`: General application logs
-- `user_activity_YYYYMMDD.json`: User activity logs
-- `llm_generations_YYYYMMDD.json`: LLM generation history
+- `user_activity.json`: Session-specific user activity logs
+- `llm_generations.json`: Session-specific LLM generation history
+- `report_data.json`: Final report snapshot for the session
 
 ## Production Deployment
 
@@ -220,4 +233,4 @@ Bug reports and feature suggestions are welcome via GitHub Issues.
 ---
 
 **Development Period**: January 2026
-**Key Technologies**: Next.js 14, TypeScript, FastAPI, OpenAI GPT-4o
+**Key Technologies**: Next.js 14, TypeScript, FastAPI, OpenAI GPT-5.2

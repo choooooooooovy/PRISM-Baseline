@@ -1,15 +1,17 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+# Load environment variables FIRST before any other imports
 from dotenv import load_dotenv
-import os
 from pathlib import Path
+import os
 
-from routers import llm
-from utils.logger import setup_logging
-
-# Load environment variables from the current directory
 env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path)
+
+# Now import other modules
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from routers import llm, report
+from utils.logger import setup_logging
 
 # Setup logging
 setup_logging()
@@ -33,6 +35,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(llm.router, prefix="/api", tags=["llm"])
+app.include_router(report.router, prefix="/api", tags=["report"])
 
 @app.get("/")
 async def root():

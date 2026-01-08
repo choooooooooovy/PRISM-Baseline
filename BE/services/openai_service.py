@@ -12,7 +12,7 @@ class OpenAIService:
             raise ValueError("OPENAI_API_KEY not found in environment variables")
         
         self.client = OpenAI(api_key=api_key)
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
+        self.model = os.getenv("OPENAI_MODEL", "gpt-4o")
     
     def generate_options(
         self,
@@ -35,6 +35,10 @@ class OpenAIService:
         # Build structured prompt
         prompt = self._build_prompt(step0_data, step1_data, step2_data)
         
+        # Build dynamic system prompt based on informationTemplate
+        info_template = step2_data.get('informationTemplate', [])
+        system_prompt = self._build_system_prompt(info_template)
+        
         try:
             logger.info(f"Sending request to OpenAI ({self.model})")
             
@@ -43,33 +47,7 @@ class OpenAIService:
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are a career counseling expert specializing in the CASVE (Communication, Analysis, Synthesis, Valuing, Execution) decision-making model. 
-Your task is to generate personalized career or decision alternatives based on the user's profile, problem definition, and analysis criteria.
-
-Generate 3-5 realistic and actionable options that:
-1. Align with the user's values, interests, and strengths
-2. Consider their constraints and concerns
-3. Address their decision-making problem
-4. Can be evaluated using their criteria
-
-Return the response in JSON format with the following structure:
-{
-  "options": [
-    {
-      "title": "Option title (brief, clear)",
-      "description": "2-3 sentence overview",
-      "profile": {
-        "coreRole": "Main role/responsibility",
-        "requiredSkills": "Key skills needed",
-        "environment": "Work environment description",
-        "growth": "Growth potential and trajectory"
-      },
-      "matchReason": "Why this fits the user (2-3 sentences)"
-    }
-  ]
-}
-
-Respond ONLY with valid JSON, no additional text."""
+                        "content": system_prompt
                     },
                     {
                         "role": "user",
@@ -158,6 +136,63 @@ Respond ONLY with valid JSON, no additional text."""
             prompt_parts.append(f"**Additional Constraints**: {', '.join(constraints)}")
         
         prompt_parts.append("\n---")
-        prompt_parts.append("Based on this information, generate 3-5 personalized career/decision options.")
+        prompt_parts.append("Based on this information, generate exactly 5 personalized career/decision options.")
         
         return "\n".join(prompt_parts)
+    
+    def _build_system_prompt(self, info_template: list) -> str:
+        """Build dynamic system prompt based on informationTemplate"""
+        
+        # Build profile field list from informationTemplate
+        profile_fields = []
+        for item in info_template:
+            field_name = item.get('field', '')
+            description = item.get('description', '')
+            # Extract field key from "한글이름 (fieldKey)" format
+            if '(' in field_name and ')' in field_name:
+                field_key = field_name.split('(')[1].split(')')[0]
+                field_label = field_name.split('(')[0].strip()
+            else:
+                field_key = field_name.replace(' ', '_').lower()
+                field_label = field_name
+            
+            profile_fields.append({
+                'key': field_key,
+                'label': field_label,
+                'description': description
+            })
+        
+        # Build profile JSON structure
+        profile_json_fields = []
+        for field in profile_fields:
+            profile_json_fields.append(f'        "{field["key"]}": "{field["label"]} - {field["description"]}"')
+        
+        profile_json_str = ',\n'.join(profile_json_fields)
+        
+        system_prompt = f"""당신은 CASVE (Communication, Analysis, Synthesis, Valuing, Execution) 의사결정 모델을 전문으로 하는 진로 상담 전문가입니다.
+사용자의 프로필, 문제 정의, 분석 기준을 바탕으로 개인화된 진로 또는 의사결정 대안을 생성하는 것이 당신의 임무입니다.
+
+다음 조건을 충족하는 현실적이고 실행 가능한 대안을 정확히 5개 생성하세요:
+1. 사용자의 가치관, 흥미, 강점과 일치
+2. 제약 조건과 우려 사항 고려
+3. 의사결정 문제 해결
+4. 평가 기준으로 비교 가능
+
+응답은 다음 JSON 형식으로만 작성하세요:
+{{
+  "options": [
+    {{
+      "title": "대안 제목 (간결하고 명확하게)",
+      "description": "2-3문장 개요",
+      "profile": {{
+{profile_json_str}
+      }},
+      "matchReason": "사용자에게 적합한 이유 (2-3문장)"
+    }}
+  ]
+}}
+
+반드시 유효한 JSON으로만 응답하고, 추가 텍스트는 작성하지 마세요. 모든 응답은 한글로 작성하세요.
+각 profile 필드는 위에 명시된 키를 정확히 사용하고, 해당 필드에 대한 구체적이고 유용한 정보를 제공하세요."""
+        
+        return system_prompt

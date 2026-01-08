@@ -20,13 +20,13 @@ def setup_logging():
     )
 
 def log_user_activity(session_id: str, activity_type: str, data: dict):
-    """Log user activity to JSON file"""
-    log_dir = Path("logs")
-    log_file = log_dir / f"user_activity_{datetime.now().strftime('%Y%m%d')}.json"
+    """Log user activity to session-specific JSON file"""
+    session_dir = Path("logs") / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    log_file = session_dir / "user_activity.json"
     
     log_entry = {
         "timestamp": datetime.now().isoformat(),
-        "session_id": session_id,
         "activity_type": activity_type,
         "data": data
     }
@@ -46,13 +46,13 @@ def log_user_activity(session_id: str, activity_type: str, data: dict):
         json.dump(logs, f, ensure_ascii=False, indent=2)
 
 def log_llm_generation(session_id: str, prompt: str, response: str, model: str, tokens_used: dict):
-    """Log LLM generation details"""
-    log_dir = Path("logs")
-    log_file = log_dir / f"llm_generations_{datetime.now().strftime('%Y%m%d')}.json"
+    """Log LLM generation details to session-specific JSON file"""
+    session_dir = Path("logs") / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    log_file = session_dir / "llm_generations.json"
     
     log_entry = {
         "timestamp": datetime.now().isoformat(),
-        "session_id": session_id,
         "model": model,
         "tokens_used": tokens_used,
         "prompt": prompt,
@@ -71,3 +71,22 @@ def log_llm_generation(session_id: str, prompt: str, response: str, model: str, 
     
     with open(log_file, 'w', encoding='utf-8') as f:
         json.dump(logs, f, ensure_ascii=False, indent=2)
+
+def log_report_data(session_id: str, step0_data: dict, step1_data: dict, step2_data: dict, step3_data: dict, step4_data: dict):
+    """Log complete report data (Steps 0-4) to session-specific JSON file"""
+    session_dir = Path("logs") / session_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+    log_file = session_dir / "report_data.json"
+    
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "step0": step0_data,
+        "step1": step1_data,
+        "step2": step2_data,
+        "step3": step3_data,
+        "step4": step4_data
+    }
+    
+    # For report data, we save the complete snapshot (not append)
+    with open(log_file, 'w', encoding='utf-8') as f:
+        json.dump(log_entry, f, ensure_ascii=False, indent=2)
